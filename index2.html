@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Retro Tone-Invader</title>
+  <style>
+    html, body {
+      margin: 0; padding: 0;
+      width: 100%; height: 100%;
+      overflow: hidden;
+      background: black;
+    }
+
+    /* AUTH / INTRO / LEADERBOARD SCREENS */
+    #auth, #intro, #leaderboard {
+      position: absolute; top: 0; left: 0;
+      width: 100%; height: 100%;
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: black;
+      color: white;
+      font-family: sans-serif;
+      text-align: center;
+    }
+    #auth .card, #intro .card, #leaderboard .card {
+      background: #111;
+      border: 2px solid cyan;
+      padding: 2rem;
+      max-width: 620px;
+      width: 90%;
+    }
+    #auth h1, #intro h1, #leaderboard h1 { color: cyan; margin-bottom: 0.5em; }
+    #auth input, #intro input {
+      display: block;
+      margin: 0.5em auto 1em;
+      padding: 0.6em;
+      width: 80%;
+      background: #222;
+      color: white;
+      border: 1px solid #555;
+      font-size: 1rem;
+      text-align: center;
+    }
+    #auth button, #intro button, #leaderboard button {
+      background: cyan;
+      border: none;
+      padding: 0.5em 1em;
+      color: black;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    #intro .buttons { display: flex; justify-content: space-between; }
+    #intro button:disabled { opacity: 0.3; cursor: default; }
+
+    /* Leaderboard table */
+    #lb-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1rem 0;
+      font-family: monospace;
+      color: #e8ffff;
+    }
+    #lb-table th, #lb-table td {
+      border-bottom: 1px solid #244e4e;
+      padding: 0.5rem 0.75rem;
+      text-align: left;
+    }
+    #lb-table th { color: #9ff; }
+    #lb-empty {
+      opacity: 0.75;
+      margin: 0.5rem 0 1rem;
+      font-style: italic;
+    }
+
+    /* Game canvas & overlays */
+    canvas {
+      display: none;
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+    }
+    #overlay, #transition, #pauseMenu {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%,-50%);
+      color: white;
+      font-family: sans-serif;
+      font-size: 2em;
+      display: none;
+      text-align: center;
+    }
+
+    /* Pause menu card */
+    #pauseMenu {
+      display: none;
+    }
+    #pauseMenu .card {
+      background: rgba(0,0,0,0.85);
+      border: 2px solid cyan;
+      padding: 1.25rem 1.5rem;
+      min-width: 300px;
+    }
+    #pauseMenu h2 { margin: 0 0 .75rem; color: cyan; font-size: 1.25rem; }
+    #pauseMenu .row {
+      display: flex; gap: .75rem; justify-content: center; margin-top: .5rem;
+    }
+    #pauseMenu button {
+      background: cyan; border: none; padding: .5rem 1rem; color: #000; cursor: pointer; font-size: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <!-- 0) AUTH SCREEN -->
+  <div id="auth">
+    <div class="card">
+      <h1>Sign In</h1>
+      <p>Create a username & password to track your high scores on this device.</p>
+      <input id="auth-username" placeholder="USERNAME" maxlength="18" />
+      <input id="auth-password" placeholder="PASSWORD" type="password" maxlength="64" />
+      <div style="display:flex; gap:0.5rem; justify-content:center; margin-top:0.5rem;">
+        <button id="btn-signup">Sign Up</button>
+        <button id="btn-login">Log In</button>
+      </div>
+
+      <!-- Leaderboard button -->
+      <div style="margin-top:0.75rem;">
+        <button id="btn-leaderboard" style="background:#2fd3d3;color:black;">Leaderboard</button>
+      </div>
+
+      <p id="auth-msg" style="min-height:1.2em; margin-top:0.8rem; color:#9ff;"></p>
+      <p style="opacity:.7; font-size:.9em; margin-top:1rem;">
+        (Local only; not secure. For demo purposes—use a unique password.)
+      </p>
+    </div>
+  </div>
+
+  <!-- 1) LEADERBOARD SCREEN -->
+  <div id="leaderboard">
+    <div class="card">
+      <h1>Leaderboard</h1>
+      <div id="lb-empty" style="display:none;">No scores yet. Be the first to play!</div>
+      <table id="lb-table" style="display:none;">
+        <thead>
+          <tr>
+            <th style="width:4ch;">#</th>
+            <th>Username</th>
+            <th style="text-align:right;">High&nbsp;Score</th>
+          </tr>
+        </thead>
+        <tbody id="lb-body"></tbody>
+      </table>
+      <div style="margin-top:0.5rem;">
+        <button id="btn-lb-back">Back to Login</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2) INTRO SCREEN -->
+  <div id="intro">
+    <div class="card">
+      <h1 id="intro-title"></h1>
+      <p id="intro-content"></p>
+      <div id="name-container" style="display: none;">
+        <input id="playerName" placeholder="ENTER NAME" maxlength="12" />
+      </div>
+      <div class="buttons">
+        <button id="prevBtn">Previous</button>
+        <button id="nextBtn">Next</button>
+      </div>
+      <p style="margin-top:1em; font-size:0.9em" id="page-indicator"></p>
+    </div>
+  </div>
+
+  <!-- 3) GAME CANVAS & OVERLAYS -->
+  <canvas id="canvas"></canvas>
+  <div id="overlay">Game Over<br>Press R to Restart</div>
+  <div id="transition"></div>
+
+  <!-- 4) PAUSE MENU -->
+  <div id="pauseMenu">
+    <div class="card">
+      <h2>Paused</h2>
+      <div class="row">
+        <button id="btn-pause-resume">Resume</button>
+        <button id="btn-pause-back">Back to Login</button>
+      </div>
+      <p style="font-size:.8rem; opacity:.8; margin-top:.75rem;">(Press Esc to toggle)</p>
+    </div>
+  </div>
+
+  <!-- 5) AUTH + INTRO SCRIPT -->
+  <script>
+  // --- tiny hashing helper (uses SubtleCrypto when available) ---
+  async function hashPassword(pw) {
+    if (window.crypto && crypto.subtle) {
+      const enc = new TextEncoder().encode(pw);
+      const buf = await crypto.subtle.digest('SHA-256', enc);
+      return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+    }
+    // fallback (not secure)
+    let h = 0; for (let i=0;i<pw.length;i++){ h = (h<<5)-h + pw.charCodeAt(i); h|=0; }
+    return 'x'+(h>>>0).toString(16);
+  }
+
+  const STORAGE_USERS_KEY = 'rt_users';
+  const STORAGE_CURR_KEY  = 'rt_currentUser';
+
+  function loadUsers(){
+    try { return JSON.parse(localStorage.getItem(STORAGE_USERS_KEY) || '{}'); }
+    catch { return {}; }
+  }
+  function saveUsers(u){ localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(u)); }
+  function setCurrentUser(u){ localStorage.setItem(STORAGE_CURR_KEY, JSON.stringify(u)); }
+  function show(el, on=true){ el.style.display = on ? 'flex' : 'none'; }
+
+  // Elements
+  const auth   = document.getElementById('auth');
+  const aUser  = document.getElementById('auth-username');
+  const aPass  = document.getElementById('auth-password');
+  const aMsg   = document.getElementById('auth-msg');
+  const btnSU  = document.getElementById('btn-signup');
+  const btnLI  = document.getElementById('btn-login');
+
+  // Leaderboard elements
+  const leaderboard = document.getElementById('leaderboard');
+  const btnLB       = document.getElementById('btn-leaderboard');
+  const btnLBBack   = document.getElementById('btn-lb-back');
+  const lbTable     = document.getElementById('lb-table');
+  const lbBody      = document.getElementById('lb-body');
+  const lbEmpty     = document.getElementById('lb-empty');
+
+  // Intro elements
+  const intro      = document.getElementById("intro");
+  const titleEl    = document.getElementById("intro-title");
+  const contentEl  = document.getElementById("intro-content");
+  const nameCont   = document.getElementById("name-container");
+  const nameInput  = document.getElementById("playerName");
+  const prevBtn    = document.getElementById("prevBtn");
+  const nextBtn    = document.getElementById("nextBtn");
+  const pageInd    = document.getElementById("page-indicator");
+  const canvas     = document.getElementById("canvas");
+
+  // --- AUTH handlers ---
+  async function doSignup() {
+    const username = (aUser.value || '').trim().toLowerCase();
+    const password = aPass.value || '';
+    if (!username || !password) { aMsg.textContent = 'Enter a username & password.'; return; }
+    const users = loadUsers();
+    if (users[username]) { aMsg.textContent = 'Username already exists. Try Login.'; return; }
+    const hash = await hashPassword(password);
+    users[username] = { passwordHash: hash, highScore: 0, displayName: username.toUpperCase() };
+    saveUsers(users);
+    const curr = { username, passwordHash: hash, displayName: users[username].displayName };
+    setCurrentUser(curr);
+    aMsg.textContent = 'Signed up. Welcome!';
+    proceedToIntro(curr);
+  }
+
+  async function doLogin() {
+    const username = (aUser.value || '').trim().toLowerCase();
+    const password = aPass.value || '';
+    if (!username || !password) { aMsg.textContent = 'Enter a username & password.'; return; }
+    const users = loadUsers();
+    const rec = users[username];
+    if (!rec) { aMsg.textContent = 'No such user. Try Sign Up.'; return; }
+    const hash = await hashPassword(password);
+    if (hash !== rec.passwordHash) { aMsg.textContent = 'Wrong password.'; return; }
+    const curr = { username, passwordHash: hash, displayName: rec.displayName || username.toUpperCase() };
+    setCurrentUser(curr);
+    aMsg.textContent = 'Logged in!';
+    proceedToIntro(curr);
+  }
+
+  function proceedToIntro(currUser) {
+    // Prefill name field with displayName
+    playerName = currUser.displayName || currUser.username.toUpperCase();
+    nameInput.value = playerName;
+    show(auth, false);
+    show(leaderboard, false);
+    show(intro, true);
+    renderPage();
+  }
+
+  btnSU.addEventListener('click', ()=>{ doSignup(); });
+  btnLI.addEventListener('click', ()=>{ doLogin(); });
+
+  // Leaderboard interactions
+  btnLB.addEventListener('click', ()=>{
+    buildLeaderboard();
+    show(auth, false);
+    show(leaderboard, true);
+  });
+  btnLBBack.addEventListener('click', ()=>{
+    show(leaderboard, false);
+    show(auth, true);
+  });
+
+  function buildLeaderboard() {
+    const usersObj = loadUsers();
+    const entries = Object.entries(usersObj).map(([username, rec]) => ({
+      username,
+      displayName: (rec && rec.displayName) ? rec.displayName : username.toUpperCase(),
+      highScore: (rec && typeof rec.highScore === 'number') ? rec.highScore : 0
+    }));
+
+    // Sort by highScore desc, then name asc
+    entries.sort((a,b)=> (b.highScore - a.highScore) || a.displayName.localeCompare(b.displayName));
+
+    lbBody.innerHTML = '';
+    if (entries.length === 0) {
+      lbTable.style.display = 'none';
+      lbEmpty.style.display = 'block';
+      return;
+    }
+
+    lbEmpty.style.display = 'none';
+    lbTable.style.display = 'table';
+    entries.slice(0, 20).forEach((e, idx)=>{
+      const tr = document.createElement('tr');
+      const rank = document.createElement('td'); rank.textContent = (idx+1).toString().padStart(2,' ');
+      const name = document.createElement('td'); name.textContent = e.displayName;
+      const score= document.createElement('td'); score.style.textAlign='right'; score.textContent = e.highScore.toString();
+      tr.appendChild(rank); tr.appendChild(name); tr.appendChild(score);
+      lbBody.appendChild(tr);
+    });
+  }
+
+  // Auto-show auth on load
+  show(auth, true);
+
+  // --- INTRO sequence ---
+  const storyPages = [
+    { title: "DEFEND THE FEDERATION", content: "Earth faces its greatest threat yet – a BUG SPECIES from OUTER SPACE." },
+    { content: "They come from a dirty planet. A bug planet. We must defend our way of life." },
+    { content: "A federal study has identified you as having potential precognitive powers." },
+    { content: "You can't interpret them yet, but you can hear tones from the future." },
+    { content: "So, to protect your home, you've chosen to enlist in the FEDERATION MILITARY." },
+    { content: "Now, you're a CITIZEN: you will defend the body politic with your life." },
+    { content: "Enter your name, soldier. You'll start as a Private.", isNameInput: true }
+  ];
+  let currentPage = 0;
+  let playerName  = "IBANEZ";
+
+  function renderPage(){
+    const page = storyPages[currentPage];
+    titleEl.textContent   = page.title || "";
+    contentEl.textContent = page.content;
+    nameCont.style.display = page.isNameInput ? "block" : "none";
+    prevBtn.disabled      = currentPage === 0;
+    nextBtn.textContent   = currentPage < storyPages.length - 1 ? "Next" : "Begin Mission";
+    nextBtn.disabled      = page.isNameInput && !playerName.trim();
+    pageInd.textContent   = `${currentPage + 1} / ${storyPages.length}`;
+  }
+
+  prevBtn.addEventListener("click", ()=>{
+    if (currentPage > 0) { currentPage--; renderPage(); }
+  });
+
+  nextBtn.addEventListener("click", ()=>{
+    if (currentPage < storyPages.length - 1) {
+      currentPage++; renderPage();
+    } else {
+      const entered = nameInput.value.trim();
+      if (entered) playerName = entered.toUpperCase();
+      window.playerName = playerName;
+
+      intro.style.display  = "none";
+      canvas.style.display = "block";
+
+      if (typeof window.initGame === "function") {
+        window.initGame(playerName);
+      }
+    }
+  });
+
+  nameInput.addEventListener("input", e=>{
+    playerName = e.target.value.toUpperCase();
+    renderPage();
+  });
+  </script>
+
+  <!-- 6) YOUR GAME CODE -->
+  <script src="src/game.js"></script>
+</body>
+</html>
