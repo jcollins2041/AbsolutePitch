@@ -1,6 +1,6 @@
 // game.js
 
-// ── Safe, non-colliding storage helpers (shared with index2.html) ──
+// ── Safe, non-colliding storage helpers (shared with index.html) ──
 function rtGameLoadUsers() {
   try { return JSON.parse(localStorage.getItem('rt_users') || '{}'); }
   catch { return {}; }
