@@ -24,9 +24,10 @@ function rtGamePersistHighScoreIfPossible(newScore) {
 }
 
 // ── Public API ───────────────────────────────────────────────────────
-function initGame(playerName) {
+function initGame(playerName, isLeftHanded = true) {
   console.log("Starting game for", playerName);
   window.playerName = playerName;
+  window.isLeftHanded = !!isLeftHanded;
 
   const playerImg = new Image();
   const alienImg = new Image();
@@ -746,15 +747,32 @@ async function unlock(){
     if (k === 'r' && over) { restartGame(); return; }
 
     // Move between quarters (1–4). Lane movement is disabled.
-    if (['1', '2', '3', '4'].includes(e.key)) {
-      const groupIndex = parseInt(e.key) - 1;
-      if (groupIndex >= 0 && groupIndex < groupOffsets.length) {
-        ship.group = groupIndex;
-        ship.blockOffset = 0; // always mid
-        ship.updatePos();
-      }
-      return;
-    }
+    // Move between quarters (no lane movement)
+{
+  const kRaw = e.key || '';
+  const k    = kRaw.toLowerCase();
+
+  // Left-handed keys: 1–4
+  const LEFT_KEYS  = new Map([['1',0], ['2',1], ['3',2], ['4',3]]);
+  // Right-handed keys: P, [, ], \
+  // Note: symbols are case-insensitive in practice, but we check raw and lowercase for safety.
+  const RIGHT_KEYS = new Map([['p',0], ['[',1], [']',2], ['\\',3]]);
+
+  let movementIndex;
+  if (window.isLeftHanded) {
+    movementIndex = LEFT_KEYS.get(kRaw);          // digits come through as raw '1'..'4'
+  } else {
+    movementIndex = RIGHT_KEYS.get(kRaw) ?? RIGHT_KEYS.get(k); // handle 'p' or 'P'
+  }
+
+  if (movementIndex !== undefined) {
+    ship.group = movementIndex;
+    ship.blockOffset = 0; // always mid
+    ship.updatePos();
+    return;
+  }
+}
+
 
     if (k === 'c') { streak++; return; }
 

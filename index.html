@@ -169,6 +169,9 @@
       <div class="buttons">
         <button id="prevBtn">Previous</button>
         <button id="nextBtn">Next</button>
+        <button id="toggle-handedness" style="background:#2fd3d3; color:black;">
+          Mode: Left-Handed
+        </button>
       </div>
       <p style="margin-top:1em; font-size:0.9em" id="page-indicator"></p>
     </div>
@@ -242,6 +245,7 @@
   const nextBtn    = document.getElementById("nextBtn");
   const pageInd    = document.getElementById("page-indicator");
   const canvas     = document.getElementById("canvas");
+  const toggleBtn  = document.getElementById("toggle-handedness");
 
   // --- AUTH handlers ---
   async function doSignup() {
@@ -343,6 +347,21 @@
   ];
   let currentPage = 0;
   let playerName  = "IBANEZ";
+  let isLeftHanded = true;
+
+  // ===== Step 4: helper + click handler (placed right after toggleBtn) =====
+  function updateHandednessLabel(btn) {
+    if (!btn) return;
+    btn.textContent = `Mode: ${isLeftHanded ? "Left-Handed" : "Right-Handed"}`;
+  }
+  if (toggleBtn) {
+    updateHandednessLabel(toggleBtn); // initial label
+    toggleBtn.addEventListener("click", () => {
+      isLeftHanded = !isLeftHanded;
+      updateHandednessLabel(toggleBtn);
+    });
+  }
+  // ========================================================================
 
   function renderPage(){
     const page = storyPages[currentPage];
@@ -353,6 +372,10 @@
     nextBtn.textContent   = currentPage < storyPages.length - 1 ? "Next" : "Begin Mission";
     nextBtn.disabled      = page.isNameInput && !playerName.trim();
     pageInd.textContent   = `${currentPage + 1} / ${storyPages.length}`;
+
+    // ===== Step 5: keep label correct when pages change =====
+    updateHandednessLabel(toggleBtn);
+    // ========================================================
   }
 
   prevBtn.addEventListener("click", ()=>{
@@ -371,7 +394,9 @@
       canvas.style.display = "block";
 
       if (typeof window.initGame === "function") {
-        window.initGame(playerName);
+        // ===== Step 6: pass handedness into the game =====
+        window.initGame(playerName, isLeftHanded);
+        // ================================================
       }
     }
   });
