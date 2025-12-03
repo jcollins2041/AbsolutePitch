@@ -12,8 +12,9 @@
       background: black;
     }
 
-    /* AUTH / INTRO / LEADERBOARD SCREENS */
-    #auth, #intro, #leaderboard {
+    /* SHARED FULL-SCREEN LAYOUTS */
+    #auth, #intro, #leaderboard,
+    #ageGate, #child-assent, #adult-consent, #parent-consent {
       position: absolute; top: 0; left: 0;
       width: 100%; height: 100%;
       display: none;
@@ -25,14 +26,23 @@
       font-family: sans-serif;
       text-align: center;
     }
-    #auth .card, #intro .card, #leaderboard .card {
+
+    #auth .card, #intro .card, #leaderboard .card,
+    #ageGate .card, #child-assent .card, #adult-consent .card, #parent-consent .card {
       background: #111;
       border: 2px solid cyan;
       padding: 2rem;
-      max-width: 620px;
+      max-width: 720px;
       width: 90%;
     }
-    #auth h1, #intro h1, #leaderboard h1 { color: cyan; margin-bottom: 0.5em; }
+
+
+    #auth h1, #intro h1, #leaderboard h1,
+    #ageGate h1, #child-assent h1, #adult-consent h1 {
+      color: cyan;
+      margin-bottom: 0.5em;
+    }
+
     #auth input, #intro input {
       display: block;
       margin: 0.5em auto 1em;
@@ -44,7 +54,9 @@
       font-size: 1rem;
       text-align: center;
     }
-    #auth button, #intro button, #leaderboard button {
+
+    #auth button, #intro button, #leaderboard button,
+    #ageGate button, #child-assent button, #adult-consent button {
       background: cyan;
       border: none;
       padding: 0.5em 1em;
@@ -52,6 +64,7 @@
       font-size: 1rem;
       cursor: pointer;
     }
+
     #intro .buttons { display: flex; justify-content: space-between; }
     #intro button:disabled { opacity: 0.3; cursor: default; }
 
@@ -110,6 +123,67 @@
     #pauseMenu button {
       background: cyan; border: none; padding: .5rem 1rem; color: #000; cursor: pointer; font-size: 1rem;
     }
+
+    /* Consent scroll boxes */
+    .scroll-box {
+      max-height: 45vh;
+      overflow-y: auto;
+      text-align: left;
+      margin: 0.5rem 0 1rem;
+      padding-right: 0.5rem;
+      font-size: 0.9rem;
+      line-height: 1.3;
+    }
+    .scroll-box h2, .scroll-box h3 {
+      color: #9ff;
+      margin-top: 0.75rem;
+      margin-bottom: 0.25rem;
+    }
+    .scroll-box p {
+      margin: 0.25rem 0;
+    }
+    .scroll-box ul {
+      padding-left: 1.2rem;
+      margin: 0.25rem 0 0.5rem;
+    }
+    .scroll-box li {
+      margin: 0.1rem 0;
+    }
+
+    .consent-controls {
+      margin-top: 0.75rem;
+      text-align: left;
+      font-size: 0.9rem;
+    }
+    .consent-controls label {
+      display: block;
+      margin: 0.25rem 0;
+    }
+    .consent-controls input[type="text"],
+    .consent-controls input[type="email"] {
+      width: 100%;
+      max-width: 100%;
+      padding: 0.4rem;
+      margin-top: 0.25rem;
+      box-sizing: border-box;
+      background: #222;
+      border: 1px solid #555;
+      color: #fff;
+      font-size: 0.9rem;
+    }
+    .consent-buttons {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+    .consent-msg {
+      min-height: 1.2em;
+      margin-top: 0.4rem;
+      font-size: 0.85rem;
+      color: #9ff;
+      text-align: left;
+    }
   </style>
 </head>
 <body>
@@ -158,6 +232,442 @@
     </div>
   </div>
 
+  <!-- 1.5) AGE GATE -->
+  <div id="ageGate">
+    <div class="card">
+      <h1>Before You Play</h1>
+      <p style="max-width: 540px; margin: 0 auto 1rem;">
+        We’re conducting a research study on how people learn musical sounds while playing this game.
+        To continue, please tell us whether you are under 18 or 18 or older so we can show you the
+        appropriate consent form.
+      </p>
+      <div style="display:flex; flex-direction:column; gap:0.75rem; max-width:380px; margin:0 auto;">
+        <button id="btn-under-18">I am under 18</button>
+        <button id="btn-18-plus">I am 18 or older</button>
+      </div>
+      <p style="margin-top:1rem; font-size:0.8rem; opacity:0.8;">
+        Participation is voluntary. You can stop at any time.
+      </p>
+      <div style="margin-top:0.5rem;">
+        <button id="btn-age-back" style="background:#333;color:#eee;">Back to Login</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 1.6) CHILD ASSENT SCREEN -->
+  <div id="child-assent">
+    <div class="card">
+      <h1>Child Assent to Participate</h1>
+      <div class="scroll-box">
+        <p><strong>University of Chicago Written Assent to Participate in Research</strong></p>
+        <p><strong>Study Number:</strong> IRB25-1851</p>
+        <p><strong>Study Title:</strong> Implicit Learning of Perceptual Categories in a Gamified Environment</p>
+        <p><strong>Researchers:</strong> Shannon Heald, Jackson Collins, Elizabeth McCarthy, Samantha Flores, Sara Afzal</p>
+
+        <h2>What is this study about?</h2>
+        <p>
+          We are asking if you would like to be part of a science project. In this project, you will
+          get to play a fun video game. While you play, we will be studying how kids learn to hear and
+          recognize musical notes — this skill is sometimes called absolute pitch.
+        </p>
+        <p>
+          The goal of the study is to see if kids can learn about musical sounds just by playing a
+          game, even when the game is not directly trying to teach them.
+        </p>
+
+        <h2>What will I need to do?</h2>
+        <ul>
+          <li>You will play a video game for as long as you want.</li>
+          <li>In the game, you will fly a spaceship and shoot targets linked to groups of musical sounds.</li>
+          <li>After you finish, you will do a short activity (about 10 minutes) where you listen to tones and try to tell them apart.</li>
+          <li>You will answer a brief questionnaire (age, gender, and music experience).</li>
+          <li>We will not record any audio or video of you, and nothing that can identify you will be collected.</li>
+        </ul>
+
+        <h2>Do I have to be in the study?</h2>
+        <p>
+          No. You do not have to be in this study. It is up to you. You can say “no” now or change
+          your mind later.
+        </p>
+        <ul>
+          <li>You can say “no” and nothing bad will happen.</li>
+          <li>You can stop playing at any time, for any reason.</li>
+          <li>Your grades, teachers, friends, and school will not be affected.</li>
+          <li>You can skip any question you do not want to answer.</li>
+        </ul>
+
+        <h2>Are there any bad things that might happen?</h2>
+        <p>This study has very little risk, and nothing in it should hurt you. Some kids might:</p>
+        <ul>
+          <li>Feel a little tired or frustrated while playing.</li>
+          <li>Find the repeated tones a little annoying.</li>
+        </ul>
+        <p>
+          If this happens, it is okay to take a break or stop playing whenever you want. You are always
+          free to rest, pause, or quit — no one will be upset.
+        </p>
+
+        <h2>Are there any good things that might happen?</h2>
+        <p>
+          This study may not help you personally, but by playing you help researchers learn how kids
+          can learn from games. This may help other kids in the future and help scientists understand
+          how children think and grow.
+        </p>
+
+        <h2>What will you do with information about me?</h2>
+        <ul>
+          <li>We will not collect your name or anything that can easily identify you.</li>
+          <li>You will get a special ID number instead.</li>
+          <li>Your data will be stored securely on password-protected computers at the University of Chicago.</li>
+          <li>Only anonymous data may be shared with other scientists in the future.</li>
+        </ul>
+        <p>
+          If you stop being in the study, information already collected may still be used, but only in
+          this anonymous form.
+        </p>
+
+        <h2>Sometimes we must tell an adult</h2>
+        <p>
+          If you tell us something that makes us think a child is being hurt or is unsafe, or that you
+          might hurt yourself or someone else, we must tell adults who can help.
+        </p>
+
+        <h2>Right to Refuse or Withdraw</h2>
+        <p>
+          Being in the study is your choice. You can say no or stop at any time. No one at your school
+          will treat you differently based on your choice.
+        </p>
+
+        <h2>Who can I talk to about the study?</h2>
+        <p>
+          If you have questions about the study, you (or your parent/guardian) may contact
+          Dr. Shannon Heald at <span style="white-space:nowrap;">smbowdre@uchicago.edu</span>.
+        </p>
+        <p>
+          You may also contact the University of Chicago Social &amp; Behavioral Sciences IRB at
+          (773) 702-2915 or <span style="white-space:nowrap;">sbs-irb@uchicago.edu</span>.
+        </p>
+
+        <h2>Optional follow-up contact</h2>
+        <p>
+          Some children may qualify for an optional 30-minute follow-up survey based on their
+          performance. You can choose whether or not you may be contacted for this.
+        </p>
+      </div>
+
+      <div class="consent-controls">
+        <label>
+          Child's Name (print):
+          <input type="text" id="child-assent-name" placeholder="FIRST AND LAST NAME" />
+        </label>
+        <label>
+          <input type="checkbox" id="child-assent-agree" />
+          I have read (or had read to me) the information above and I agree to be in this study.
+        </label>
+
+        <div style="margin-top:0.5rem;">
+          Optional follow-up:
+          <label>
+            <input type="radio" name="child-followup" value="yes" />
+            Yes, I give permission to be contacted for an optional follow-up survey.
+          </label>
+          <label>
+            <input type="radio" name="child-followup" value="no" />
+            No, I do not want to be contacted for follow-up.
+          </label>
+          <label style="margin-top:0.25rem;">
+            If “Yes,” email or phone to contact:
+            <input type="text" id="child-followup-contact" placeholder="Email or phone (optional)" />
+          </label>
+        </div>
+
+        <div class="consent-msg" id="child-assent-msg"></div>
+      </div>
+
+      <div class="consent-buttons">
+        <button id="btn-child-back" style="background:#333;color:#eee;">Back</button>
+        <button id="btn-child-decline" style="background:#555;color:#eee;">I Do Not Want to Participate</button>
+        <button id="btn-child-continue">I Agree, Continue</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 1.65) PARENTAL CONSENT SCREEN (AFTER CHILD ASSENT) -->
+  <div id="parent-consent">
+    <div class="card">
+      <h1>Parent / Guardian Consent</h1>
+      <div class="scroll-box">
+        <p><strong>Informed Parental Consent for Participation in a Research Study</strong></p>
+        <p><strong>Study Title:</strong> Incidental Learning of Perceptual Categories in a Gamified Environment</p>
+        <p><strong>Study Number:</strong> IRB25-1110</p>
+        <p>
+          <strong>Principal Investigator:</strong> Dr. Shannon Heald, University of Chicago,
+          The Attention, Perception, and Experience (APEX) Lab, Department of Psychology.
+        </p>
+
+        <h2>1. Purpose of the Study</h2>
+        <p>
+          Your child is invited to participate in a research study investigating whether children
+          can learn to recognize musical pitches (absolute pitch) while playing a video game. The
+          goal is to understand how learning can occur through engaging, non-explicit activities.
+        </p>
+
+        <h2>2. Procedures</h2>
+        <ul>
+          <li>Your child will play a web-based video game for as long as they wish.</li>
+          <li>In the game, your child pilots a spaceship that shoots targets linked to clusters of musical tones.</li>
+          <li>They may stop playing or take breaks at any time.</li>
+          <li>After gameplay, your child will complete a brief (~10 minute) tone-identification task.</li>
+          <li>Your child will also complete a short questionnaire about age, gender, and musical background.</li>
+          <li>No identifying audio or video will be recorded.</li>
+        </ul>
+
+        <h2>3. Potential Risks</h2>
+        <p>This study involves minimal risk, which may include:</p>
+        <ul>
+          <li>Mild fatigue or frustration while playing the game.</li>
+          <li>Repeated simple tones that may be somewhat annoying.</li>
+        </ul>
+        <p>Your child can pause or stop the game at any time.</p>
+
+        <h2>4. Potential Benefits</h2>
+        <p>
+          Your child may not receive direct personal benefits. However, this research may
+          advance understanding of how children learn implicitly through interactive tasks
+          and may inform future approaches in music education or cognitive development.
+        </p>
+
+        <h2>5. Confidentiality</h2>
+        <ul>
+          <li>Your child will be assigned an ID number; their data will not be labeled with their name.</li>
+          <li>We will not intentionally collect identifying information about you or your child in the game data.</li>
+          <li>
+            All data will be stored on secure computers or University-approved services
+            (e.g., Box) controlled by the research team.
+          </li>
+          <li>
+            Once fully anonymized, data may be shared in repositories such as the Open Science
+            Framework (OSF) for scientific transparency.
+          </li>
+          <li>
+            If you or your child withdraw, data collected up to that point may still be used in
+            anonymized analyses, stored and used as described above.
+          </li>
+        </ul>
+
+        <h2>6. Voluntary Participation and Right to Withdraw</h2>
+        <ul>
+          <li>Your child’s participation is completely voluntary.</li>
+          <li>You and your child may decline to participate without penalty.</li>
+          <li>You or your child may withdraw at any time, for any reason.</li>
+          <li>Your child may skip any questions they do not wish to answer.</li>
+        </ul>
+
+        <h2>7. Optional Follow-Up Participation</h2>
+        <p>
+          Some children may qualify for a ~30-minute follow-up survey based on their performance
+          in the game and pitch tasks. You may choose whether your child can be contacted for this.
+        </p>
+        <ul>
+          <li>If you consent, you can provide an email or phone number where we may reach you.</li>
+          <li>This contact information will be stored separately from your child’s game data.</li>
+          <li>It will be used only for scheduling related follow-up studies.</li>
+        </ul>
+
+        <h2>8. Contact Information</h2>
+        <p>
+          If you have questions about the study, please contact:
+          <br/>
+          <strong>Dr. Shannon Heald</strong>,
+          <span style="white-space:nowrap;">smbowdre@uchicago.edu</span>
+        </p>
+        <p>
+          If you have questions about your rights or feel your child has been harmed by participating,
+          you may contact the University of Chicago Social &amp; Behavioral Sciences IRB at
+          (773) 702-2915 or <span style="white-space:nowrap;">sbs-irb@uchicago.edu</span>.
+        </p>
+
+        <h2>9. Parental Consent</h2>
+        <p>
+          By checking the box and signing below, you confirm that:
+        </p>
+        <ul>
+          <li>Your child is at least 12 years old.</li>
+          <li>You are the child’s parent or legal guardian.</li>
+          <li>You give permission for your child to participate in the study described above.</li>
+        </ul>
+
+        <h2>10. Child Assent Confirmation</h2>
+        <p>
+          You also confirm that the study has been explained to your child in age-appropriate
+          language, they had the chance to ask questions, and they indicated that they wish to
+          participate.
+        </p>
+      </div>
+
+      <div class="consent-controls">
+        <label>
+          Child’s Name (printed):
+          <input type="text" id="parent-child-name" placeholder="Child's first and last name" />
+        </label>
+        <label>
+          Parent/Guardian’s Name (printed):
+          <input type="text" id="parent-name" placeholder="Parent/guardian first and last name" />
+        </label>
+        <label>
+          <input type="checkbox" id="parent-consent-agree" />
+          I am the parent/guardian of this child, my child is at least 12 years old, and I give permission
+          for my child to participate in this study as described above.
+        </label>
+
+        <div style="margin-top:0.5rem;">
+          Optional follow-up:
+          <label>
+            <input type="radio" name="parent-followup" value="yes" />
+            I give permission for my child to be contacted about an optional follow-up survey.
+          </label>
+          <label>
+            <input type="radio" name="parent-followup" value="no" />
+            I do not give permission for follow-up contact.
+          </label>
+          <label style="margin-top:0.25rem;">
+            If “Yes,” preferred email or phone:
+            <input type="text" id="parent-followup-contact" placeholder="Email or phone (optional)" />
+          </label>
+        </div>
+
+        <div class="consent-msg" id="parent-consent-msg"></div>
+      </div>
+
+      <div class="consent-buttons">
+        <button id="btn-parent-back" style="background:#333;color:#eee;">Back</button>
+        <button id="btn-parent-decline" style="background:#555;color:#eee;">I Do Not Consent</button>
+        <button id="btn-parent-continue">I Consent, Continue</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- 1.7) ADULT CONSENT SCREEN -->
+  <div id="adult-consent">
+    <div class="card">
+      <h1>Adult Consent to Participate</h1>
+      <div class="scroll-box">
+        <p><strong>Consent Form for Research Participation</strong></p>
+        <p><strong>Study Number:</strong> IRB25-1851</p>
+        <p><strong>Study Title:</strong> Implicit Learning of Perceptual Categories in a Gamified Environment</p>
+        <p><strong>Researchers:</strong> Shannon Heald, Jackson Collins, Elizabeth McCarthy, Samantha Flores, Sara Afzal</p>
+
+        <h2>Purpose</h2>
+        <p>
+          You are invited to take part in a research study investigating whether individuals can
+          learn to recognize musical notes—absolute pitch—through incidental exposure during a
+          video game. This research aims to deepen our understanding of how people learn without
+          explicit instruction.
+        </p>
+
+        <h2>Procedures and Time Required</h2>
+        <ul>
+          <li>You will play a web-based video game where you control a spaceship that shoots targets, each associated with clusters of musical tones.</li>
+          <li>You may stop playing at any time.</li>
+          <li>At the conclusion, you will complete a short (~10 minute) tone-identification assessment.</li>
+          <li>You will answer a brief questionnaire including age, gender, and music experience.</li>
+          <li>No audio or video will be recorded at any point.</li>
+        </ul>
+
+        <h2>Risks</h2>
+        <p>There are minimal risks associated with this study, such as:</p>
+        <ul>
+          <li>Mild frustration or fatigue while playing.</li>
+          <li>Finding the repeated tones mildly annoying.</li>
+        </ul>
+        <p>You are free to pause or stop participation at any time without penalty.</p>
+
+        <h2>Benefits</h2>
+        <p>
+          Although you may not receive direct personal benefit, your participation may contribute
+          to understanding how people learn through interactive, non-instructional tasks and to
+          the development of future educational or cognitive training tools in music education.
+        </p>
+
+        <h2>Confidentiality</h2>
+        <ul>
+          <li>You will be assigned a random participant ID. No identifying personal information will be linked to your responses.</li>
+          <li>Data will be stored securely on encrypted University of Chicago servers or approved platforms (e.g., Box).</li>
+          <li>After full anonymization, data may be shared in repositories such as the Open Science Framework (OSF) for scientific transparency.</li>
+          <li>If you withdraw, data collected up to that point may still be included in anonymized analyses.</li>
+          <li>Identifiable data will never be shared outside the research team.</li>
+        </ul>
+
+        <h2>Voluntary Participation and Right to Withdraw</h2>
+        <ul>
+          <li>Your participation is entirely voluntary.</li>
+          <li>You may decline to participate or stop the game or survey at any point, without explanation or consequence.</li>
+          <li>You may skip any questions you do not wish to answer.</li>
+        </ul>
+
+        <h2>Optional Follow-Up Survey</h2>
+        <p>
+          Some participants may qualify for an optional 30-minute follow-up survey based on
+          gameplay performance. You may choose whether you wish to be contacted.
+        </p>
+
+        <h2>Contacts & Questions</h2>
+        <p>
+          If you have questions about the study, contact Dr. Shannon Heald,
+          Assistant Instructional Professor of Psychology, at
+          <span style="white-space:nowrap;">smbowdre@uchicago.edu</span>.
+        </p>
+        <p>
+          If you have questions about your rights as a participant or feel you have been harmed,
+          you may contact the University of Chicago Social &amp; Behavioral Sciences IRB at
+          (773) 702-2915 or <span style="white-space:nowrap;">sbs-irb@uchicago.edu</span>.
+        </p>
+
+        <h2>Consent</h2>
+        <p>
+          By indicating your agreement below and continuing, you consent to participate in this
+          research study under the conditions described above.
+        </p>
+      </div>
+
+      <div class="consent-controls">
+        <label>
+          Participant Name (printed):
+          <input type="text" id="adult-consent-name" placeholder="FIRST AND LAST NAME" />
+        </label>
+        <label>
+          <input type="checkbox" id="adult-consent-agree" />
+          I have read and understand the information above and I agree to participate in this study.
+        </label>
+
+        <div style="margin-top:0.5rem;">
+          Optional follow-up:
+          <label>
+            <input type="radio" name="adult-followup" value="yes" />
+            Yes, I agree to be contacted for a follow-up survey.
+          </label>
+          <label>
+            <input type="radio" name="adult-followup" value="no" />
+            No, I do not wish to be contacted for follow-up.
+          </label>
+          <label style="margin-top:0.25rem;">
+            If “Yes,” preferred email:
+            <input type="email" id="adult-followup-email" placeholder="email@example.com" />
+          </label>
+        </div>
+
+        <div class="consent-msg" id="adult-consent-msg"></div>
+      </div>
+
+      <div class="consent-buttons">
+        <button id="btn-adult-back" style="background:#333;color:#eee;">Back</button>
+        <button id="btn-adult-decline" style="background:#555;color:#eee;">I Do Not Consent</button>
+        <button id="btn-adult-continue">I Consent, Continue</button>
+      </div>
+    </div>
+  </div>
+
   <!-- 2) INTRO SCREEN -->
   <div id="intro">
     <div class="card">
@@ -194,7 +704,7 @@
     </div>
   </div>
 
-  <!-- 5) AUTH + INTRO SCRIPT -->
+  <!-- 5) AUTH + INTRO + CONSENT SCRIPT -->
   <script>
   // --- tiny hashing helper (uses SubtleCrypto when available) ---
   async function hashPassword(pw) {
@@ -217,7 +727,9 @@
   }
   function saveUsers(u){ localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(u)); }
   function setCurrentUser(u){ localStorage.setItem(STORAGE_CURR_KEY, JSON.stringify(u)); }
-  function show(el, on=true){ el.style.display = on ? 'flex' : 'none'; }
+  function show(el, on=true){ if (!el) return; el.style.display = on ? 'flex' : 'none'; }
+
+  let currentUser = null; // will hold { username, passwordHash, displayName }
 
   // Elements
   const auth   = document.getElementById('auth');
@@ -234,6 +746,43 @@
   const lbTable     = document.getElementById('lb-table');
   const lbBody      = document.getElementById('lb-body');
   const lbEmpty     = document.getElementById('lb-empty');
+
+  // Age gate + consent elements
+  const ageGate      = document.getElementById('ageGate');
+  const btnUnder18   = document.getElementById('btn-under-18');
+  const btn18Plus    = document.getElementById('btn-18-plus');
+  const btnAgeBack   = document.getElementById('btn-age-back');
+
+  const childAssent      = document.getElementById('child-assent');
+  const childNameInput   = document.getElementById('child-assent-name');
+  const childAgreeChk    = document.getElementById('child-assent-agree');
+  const childAssentMsg   = document.getElementById('child-assent-msg');
+  const childFollowupRadios = document.getElementsByName('child-followup');
+  const childFollowupContact = document.getElementById('child-followup-contact');
+  const btnChildBack     = document.getElementById('btn-child-back');
+  const btnChildDecline  = document.getElementById('btn-child-decline');
+  const btnChildContinue = document.getElementById('btn-child-continue');
+
+  const parentConsent         = document.getElementById('parent-consent');
+  const parentChildNameInput  = document.getElementById('parent-child-name');
+  const parentNameInput       = document.getElementById('parent-name');
+  const parentAgreeChk        = document.getElementById('parent-consent-agree');
+  const parentFollowupRadios  = document.getElementsByName('parent-followup');
+  const parentFollowupContact = document.getElementById('parent-followup-contact');
+  const parentConsentMsg      = document.getElementById('parent-consent-msg');
+  const btnParentBack         = document.getElementById('btn-parent-back');
+  const btnParentDecline      = document.getElementById('btn-parent-decline');
+  const btnParentContinue     = document.getElementById('btn-parent-continue');
+
+  const adultConsent       = document.getElementById('adult-consent');
+  const adultNameInput     = document.getElementById('adult-consent-name');
+  const adultAgreeChk      = document.getElementById('adult-consent-agree');
+  const adultConsentMsg    = document.getElementById('adult-consent-msg');
+  const adultFollowupRadios = document.getElementsByName('adult-followup');
+  const adultFollowupEmail = document.getElementById('adult-followup-email');
+  const btnAdultBack       = document.getElementById('btn-adult-back');
+  const btnAdultDecline    = document.getElementById('btn-adult-decline');
+  const btnAdultContinue   = document.getElementById('btn-adult-continue');
 
   // Intro elements
   const intro      = document.getElementById("intro");
@@ -255,12 +804,18 @@
     const users = loadUsers();
     if (users[username]) { aMsg.textContent = 'Username already exists. Try Login.'; return; }
     const hash = await hashPassword(password);
-    users[username] = { passwordHash: hash, highScore: 0, displayName: username.toUpperCase() };
+    users[username] = {
+      passwordHash: hash,
+      highScore: 0,
+      displayName: username.toUpperCase()
+      // consent info will be added later
+    };
     saveUsers(users);
     const curr = { username, passwordHash: hash, displayName: users[username].displayName };
+    currentUser = curr;
     setCurrentUser(curr);
     aMsg.textContent = 'Signed up. Welcome!';
-    proceedToIntro(curr);
+    proceedToConsent();
   }
 
   async function doLogin() {
@@ -273,17 +828,28 @@
     const hash = await hashPassword(password);
     if (hash !== rec.passwordHash) { aMsg.textContent = 'Wrong password.'; return; }
     const curr = { username, passwordHash: hash, displayName: rec.displayName || username.toUpperCase() };
+    currentUser = curr;
     setCurrentUser(curr);
     aMsg.textContent = 'Logged in!';
-    proceedToIntro(curr);
+    proceedToConsent();
   }
 
-  function proceedToIntro(currUser) {
-    // Prefill name field with displayName
-    playerName = currUser.displayName || currUser.username.toUpperCase();
-    nameInput.value = playerName;
+  function proceedToConsent() {
+    // After login/signup, go to age selection (Harvard IAT-style gating)
     show(auth, false);
     show(leaderboard, false);
+    show(ageGate, true);
+  }
+
+  function proceedToIntro() {
+    if (!currentUser) return;
+    // Prefill name field with displayName
+    playerName = currentUser.displayName || currentUser.username.toUpperCase();
+    nameInput.value = playerName;
+    show(ageGate, false);
+    show(childAssent, false);
+    show(parentConsent, false);
+    show(adultConsent, false);
     show(intro, true);
     renderPage();
   }
@@ -335,6 +901,188 @@
   // Auto-show auth on load
   show(auth, true);
 
+  // ===== AGE GATE + CONSENT LOGIC =====
+
+  btnAgeBack.addEventListener('click', () => {
+    show(ageGate, false);
+    show(auth, true);
+  });
+
+  btnUnder18.addEventListener('click', () => {
+    childAssentMsg.textContent = '';
+    show(ageGate, false);
+    show(childAssent, true);
+  });
+
+  btn18Plus.addEventListener('click', () => {
+    adultConsentMsg.textContent = '';
+    show(ageGate, false);
+    show(adultConsent, true);
+  });
+
+  btnChildBack.addEventListener('click', () => {
+    show(childAssent, false);
+    show(ageGate, true);
+  });
+
+  btnAdultBack.addEventListener('click', () => {
+    show(adultConsent, false);
+    show(ageGate, true);
+  });
+
+  function saveConsentToUser(consentPayload) {
+    if (!currentUser) return;
+    const users = loadUsers();
+    const u = users[currentUser.username] || {};
+
+    // Store multiple consent records by type in one bundle
+    if (!u.consentBundle) u.consentBundle = {};
+    if (consentPayload && consentPayload.type) {
+      u.consentBundle[consentPayload.type] = consentPayload;
+    }
+
+    users[currentUser.username] = u;
+    saveUsers(users);
+  }
+
+  btnChildDecline.addEventListener('click', () => {
+    // Back to login if they decline
+    childAssentMsg.textContent = '';
+    show(childAssent, false);
+    show(auth, true);
+  });
+
+  btnAdultDecline.addEventListener('click', () => {
+    adultConsentMsg.textContent = '';
+    show(adultConsent, false);
+    show(auth, true);
+  });
+
+  btnChildContinue.addEventListener('click', () => {
+    const name = (childNameInput.value || '').trim();
+    const agreed = childAgreeChk.checked;
+
+    if (!name) {
+      childAssentMsg.textContent = 'Please enter your name.';
+      return;
+    }
+    if (!agreed) {
+      childAssentMsg.textContent = 'Please check the box to agree to participate.';
+      return;
+    }
+
+    let followupChoice = null;
+    childFollowupRadios.forEach(r => { if (r.checked) followupChoice = r.value; });
+    const contact = (childFollowupContact.value || '').trim();
+
+    const payload = {
+      type: 'child-assent',
+      name,
+      agreed: true,
+      timestamp: new Date().toISOString(),
+      followupChoice,
+      followupContact: followupChoice === 'yes' ? contact : null,
+      formVersion: 'Child Assent v3 November 2025'
+    };
+    saveConsentToUser(payload);
+    childAssentMsg.textContent = '';
+
+    // NEW: after child assent, show parent consent screen
+    show(childAssent, false);
+    parentConsentMsg.textContent = '';
+    show(parentConsent, true);
+  });
+
+    btnParentBack.addEventListener('click', () => {
+    // Back to child assent screen
+    parentConsentMsg.textContent = '';
+    show(parentConsent, false);
+    show(childAssent, true);
+  });
+
+  btnParentDecline.addEventListener('click', () => {
+    // If parent does not consent, send back to login
+    parentConsentMsg.textContent = '';
+    show(parentConsent, false);
+    show(auth, true);
+  });
+
+  btnParentContinue.addEventListener('click', () => {
+    const childName  = (parentChildNameInput.value || '').trim();
+    const parentName = (parentNameInput.value || '').trim();
+    const agreed     = parentAgreeChk.checked;
+
+    if (!childName) {
+      parentConsentMsg.textContent = 'Please enter your child’s name.';
+      return;
+    }
+    if (!parentName) {
+      parentConsentMsg.textContent = 'Please enter your own name.';
+      return;
+    }
+    if (!agreed) {
+      parentConsentMsg.textContent = 'Please check the box to indicate your consent.';
+      return;
+    }
+
+    let followupChoice = null;
+    parentFollowupRadios.forEach(r => { if (r.checked) followupChoice = r.value; });
+    const contact = (parentFollowupContact.value || '').trim();
+
+    const payload = {
+      type: 'parental-consent',
+      childName,
+      parentName,
+      agreed: true,
+      timestamp: new Date().toISOString(),
+      followupChoice,
+      followupContact: followupChoice === 'yes' ? contact : null,
+      formVersion: 'Parental Consent IRB25-1110 November 2025'
+    };
+    saveConsentToUser(payload);
+    parentConsentMsg.textContent = '';
+
+    // Both child and parent have consented; continue to intro + game flow
+    proceedToIntro();
+  });
+
+  btnAdultContinue.addEventListener('click', () => {
+    const name = (adultNameInput.value || '').trim();
+    const agreed = adultAgreeChk.checked;
+
+    if (!name) {
+      adultConsentMsg.textContent = 'Please enter your name.';
+      return;
+    }
+    if (!agreed) {
+      adultConsentMsg.textContent = 'Please check the box to indicate consent.';
+      return;
+    }
+
+    let followupChoice = null;
+    adultFollowupRadios.forEach(r => { if (r.checked) followupChoice = r.value; });
+    const email = (adultFollowupEmail.value || '').trim();
+
+    if (followupChoice === 'yes' && !email) {
+      adultConsentMsg.textContent = 'Please provide an email for follow-up or select "No" for follow-up.';
+      return;
+    }
+
+    const payload = {
+    type: 'adult-consent',
+    name,
+    agreed: true,
+    timestamp: new Date().toISOString(),
+    followupChoice,
+    followupEmail: followupChoice === 'yes' ? email : null,
+    formVersion: 'Adult Consent November 2025'
+  };
+  saveConsentToUser(payload);
+    adultConsentMsg.textContent = '';
+
+    proceedToIntro();
+  });
+
   // --- INTRO sequence ---
   const storyPages = [
     { title: "DEFEND THE FEDERATION", content: "Earth faces its greatest threat yet – a BUG SPECIES from OUTER SPACE." },
@@ -349,7 +1097,7 @@
   let playerName  = "IBANEZ";
   let isLeftHanded = true;
 
-  // ===== Step 4: helper + click handler (placed right after toggleBtn) =====
+  // Handedness toggle
   function updateHandednessLabel(btn) {
     if (!btn) return;
     btn.textContent = `Mode: ${isLeftHanded ? "Left-Handed" : "Right-Handed"}`;
@@ -361,7 +1109,6 @@
       updateHandednessLabel(toggleBtn);
     });
   }
-  // ========================================================================
 
   function renderPage(){
     const page = storyPages[currentPage];
@@ -373,9 +1120,7 @@
     nextBtn.disabled      = page.isNameInput && !playerName.trim();
     pageInd.textContent   = `${currentPage + 1} / ${storyPages.length}`;
 
-    // ===== Step 5: keep label correct when pages change =====
     updateHandednessLabel(toggleBtn);
-    // ========================================================
   }
 
   prevBtn.addEventListener("click", ()=>{
@@ -394,9 +1139,7 @@
       canvas.style.display = "block";
 
       if (typeof window.initGame === "function") {
-        // ===== Step 6: pass handedness into the game =====
         window.initGame(playerName, isLeftHanded);
-        // ================================================
       }
     }
   });
