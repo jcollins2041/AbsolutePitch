@@ -22,6 +22,17 @@ function rtGamePersistHighScoreIfPossible(newScore) {
     rtGameSaveUsers(users);
   }
 }
+function rtGamePersistBestStreakIfPossible(newStreak) {
+  const curr = rtGameGetCurrentUser();
+  if (!curr) return;
+  const users = rtGameLoadUsers();
+  const u = users[curr.username];
+  if (!u) return;
+  if (typeof u.highStreak !== 'number' || newStreak > u.highStreak) {
+    u.highStreak = newStreak;
+    rtGameSaveUsers(users);
+  }
+}
 
 // ── Public API ───────────────────────────────────────────────────────
 function initGame(playerName, isLeftHanded = true) {
@@ -71,10 +82,11 @@ function startGame(playerImg, alienImg) {
   let paused = false;
   let pausedSnapshot = { withinPhase: false, quarter: null, hadWaiting: false };
 
-  // default in-memory high score
-  if (typeof window.highScore !== 'number') window.highScore = 0;
+  // default in-memory high score & best streak
+  if (typeof window.highScore   !== 'number') window.highScore   = 0;
+  if (typeof window.bestStreak  !== 'number') window.bestStreak  = 0;
 
-  // Load saved high score for the current logged-in user (if any)
+  // Load saved high score / best streak for the current logged-in user (if any)
   (function initHighScoreFromStorage(){
     const curr = rtGameGetCurrentUser();
     if (curr) {
@@ -82,6 +94,9 @@ function startGame(playerImg, alienImg) {
       const rec = users[curr.username];
       if (rec && typeof rec.highScore === 'number') {
         window.highScore = rec.highScore;
+      }
+      if (rec && typeof rec.highStreak === 'number') {       // ← NEW
+        window.bestStreak = rec.highStreak;
       }
     }
   })();
@@ -312,6 +327,14 @@ function startGame(playerImg, alienImg) {
     }
   }
 
+    // ── Score multiplier for enemy kills based on streak ───────────────
+  function getKillPointsForStreak(streakValue) {
+    const base = 100;
+    const s = Math.max(0, streakValue || 0);          // ensure non-negative
+    const multiplier = Math.pow(1.25, s);             // 1.25^streak
+    return Math.round(base * multiplier);             // round to nearest int
+  }
+
   // ── NOTE SCHEDULER ─────────────────────────────────────────────────
   let toneLoopTimer = null;
   let lastToneHz = null;
@@ -363,26 +386,37 @@ function startGame(playerImg, alienImg) {
     if (afterCloudTimerId) { clearTimeout(afterCloudTimerId); afterCloudTimerId = null; }
   }
 
-  // Draw the High Score box (top-right)
+  // Draw the High Score + Best Streak box (top-right)
   function drawHighScoreBox() {
-    const label = `High Score: ${window.highScore || 0}`;
+    const label1 = `High Score: ${window.highScore  || 0}`;
+    const label2 = `Best Streak: ${window.bestStreak || 0}`;
+
     ctx.save();
     ctx.font = '18px sans-serif';
     const pad = 10;
-    const metrics = ctx.measureText(label);
-    const w = metrics.width + pad * 2;
-    const h = 32;
+
+    const w = Math.max(
+      ctx.measureText(label1).width,
+      ctx.measureText(label2).width
+    ) + pad * 2;
+
+    const lineHeight = 22;
+    const h = lineHeight * 2 + pad * 2;
     const x = canvas.width - w - 10;
     const y = 10;
+
     ctx.fillStyle = 'rgba(0,0,0,0.6)';
     ctx.fillRect(x, y, w, h);
     ctx.strokeStyle = 'cyan';
     ctx.lineWidth = 2;
     ctx.strokeRect(x, y, w, h);
+
     ctx.fillStyle = 'white';
     ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(label, x + pad, y + h / 2);
+    ctx.textBaseline = 'top';
+    ctx.fillText(label1, x + pad, y + pad);
+    ctx.fillText(label2, x + pad, y + pad + lineHeight);
+
     ctx.restore();
   }
 
@@ -438,6 +472,12 @@ function startGame(playerImg, alienImg) {
       window.highScore = best;
       rtGamePersistHighScoreIfPossible(window.highScore);
     }
+
+    // Persist best streak seen this session
+    if (bestStreak > (window.bestStreak || 0)) {
+      window.bestStreak = bestStreak;
+    }
+    rtGamePersistBestStreakIfPossible(window.bestStreak);
 
     over = true;
     paused = false;
@@ -541,9 +581,17 @@ function startGame(playerImg, alienImg) {
   let bullets,enemy,lvl,score,waiting,over,inTransition,
       expectedQuarter,withinPhase,phaseShot,streak=0,
       explosions=[],effects=[];
+  let bestStreak = window.bestStreak || 0;
 
   const overlay=document.getElementById('overlay'),
         transition=document.getElementById('transition');
+
+  function initState(){
+    ship=new Ship(); bullets=[]; enemy=null; score=0; lvl=0;
+    waiting=false; over=false; inTransition=false; streak=0;
+    explosions=[]; effects=[];
+    // bestStreak stays as-is across runs until a new user logs in
+  }  
 
   function initState(){
     ship=new Ship(); bullets=[]; enemy=null; score=0; lvl=0;
@@ -691,6 +739,12 @@ async function unlock(){
           rtGamePersistHighScoreIfPossible(window.highScore);
         }
 
+        // Persist best streak on death
+        if (bestStreak > (window.bestStreak || 0)) {
+          window.bestStreak = bestStreak;
+        }
+        rtGamePersistBestStreakIfPossible(window.bestStreak);
+
         over = true;
         clearAllTimers();
         stopToneSequence();
@@ -703,18 +757,23 @@ async function unlock(){
 
     bullets = (bullets || []).filter(b=>{
       if(b.off())return false;
-      if(enemy&&Math.hypot(enemy.x-b.x,enemy.y-b.y)<enemy.r+b.r){
-        score+=100;
-        enemy=null;
+            if (enemy && Math.hypot(enemy.x - b.x, enemy.y - b.y) < enemy.r + b.r) {
+        // Score for destroying this enemy scales with current streak:
+        // base 100 × 1.25^streak
+        const killPoints = getKillPointsForStreak(streak);
+        score += killPoints;
+
+        enemy = null;
         stopToneSequence(); // stop tone when alien dies (before cloud)
-        waiting=true;
+        waiting = true;
 
         // Track these so they can be cancelled if the player dies/pauses
-        cloudTimerId = setTimeout(()=>playToneCloud(toneCloudDuration),1000);
-        afterCloudTimerId = setTimeout(()=>{
+        cloudTimerId = setTimeout(() => playToneCloud(toneCloudDuration), 1000);
+        afterCloudTimerId = setTimeout(() => {
           if (over) return;
-          waiting=false; scheduleWave();
-        },1000 + toneCloudDuration*1000 + 1000);
+          waiting = false;
+          scheduleWave();
+        }, 1000 + toneCloudDuration * 1000 + 1000);
 
         return false;
       }
@@ -774,7 +833,14 @@ async function unlock(){
 }
 
 
-    if (k === 'c') { streak++; return; }
+     if (k === 'c') {
+      streak++;
+      if (streak > bestStreak) {
+        bestStreak = streak;
+        window.bestStreak = bestStreak;
+      }
+      return;
+    }
 
     // ── 1) PREDICTION PHASE (pre-fire) — quarter-based
     if (withinPhase && !enemy) {
@@ -792,7 +858,13 @@ async function unlock(){
       if (groupedPhase) {
         if (k !== 'f' || playerQuarter !== alienQuarter) return;
 
-        score += 75; streak++; phaseShot = true;
+        score += 75;
+        streak++;
+        if (streak > bestStreak) {
+          bestStreak = streak;
+          window.bestStreak = bestStreak;
+        }
+        phaseShot = true;
         stopToneSequence();
         clearTimeout(spawnTimer);
         playPew();
@@ -808,7 +880,13 @@ async function unlock(){
       // Exact phases (Lv 7+): require MID lane in the correct quarter — always mid now.
       if (k === 'f') {
         if (playerQuarter === alienQuarter /* and mid by design */) {
-          score += 75; streak++; phaseShot = true;
+          score += 75;
+          streak++;
+          if (streak > bestStreak) {
+            bestStreak = streak;
+            window.bestStreak = bestStreak;
+          }
+          phaseShot = true;
           stopToneSequence();
           clearTimeout(spawnTimer);
           playPew();
