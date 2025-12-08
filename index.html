@@ -817,7 +817,7 @@
     currentUser = curr;
     setCurrentUser(curr);
     aMsg.textContent = 'Signed up. Welcome!';
-    proceedToConsent();
+    proceedAfterAuth();   // ← uses consent status
   }
 
 
@@ -834,7 +834,41 @@
     currentUser = curr;
     setCurrentUser(curr);
     aMsg.textContent = 'Logged in!';
-    proceedToConsent();
+    proceedAfterAuth();   // ← uses consent status
+  }
+
+  function hasValidConsent(rec) {
+    if (!rec || !rec.consentBundle) return false;
+    const cb = rec.consentBundle;
+
+    // Adult path: one adult consent is enough
+    if (cb['adult-consent'] && cb['adult-consent'].agreed) {
+      return true;
+    }
+
+    // Under-18 path: need BOTH child assent and parental consent
+    if (
+      cb['child-assent'] && cb['child-assent'].agreed &&
+      cb['parental-consent'] && cb['parental-consent'].agreed
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
+  function proceedAfterAuth() {
+    if (!currentUser) return;
+    const users = loadUsers();
+    const rec = users[currentUser.username];
+
+    if (hasValidConsent(rec)) {
+      // Already fully consented → skip age gate + forms
+      proceedToIntro();
+    } else {
+      // No consent yet → go to age-gate + consent flow
+      proceedToConsent();
+    }
   }
 
   function proceedToConsent() {
