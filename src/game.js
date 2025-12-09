@@ -62,10 +62,26 @@ window.initGame = initGame;
 // ── Internal: once assets are loaded, kick off the actual game ──────
 function startGame(playerImg, alienImg) {
   const canvas = document.getElementById('canvas');
+  if (!canvas) {
+    console.error('Canvas element #canvas not found');
+    return;
+  }
+
+  // Make sure the game canvas is visible
+  canvas.style.display = 'block';
+
+  // 🚫 Hide login / intro / leaderboard when the game starts
+  const auth        = document.getElementById('auth');
+  const intro       = document.getElementById('intro');
+  const leaderboard = document.getElementById('leaderboard');
+  if (auth)        auth.style.display = 'none';
+  if (intro)       intro.style.display = 'none';
+  if (leaderboard) leaderboard.style.display = 'none';
+
   const ctx = canvas.getContext('2d');
 
   // Pause UI refs
-  const pauseMenu = document.getElementById('pauseMenu');
+  const pauseMenu      = document.getElementById('pauseMenu');
   const btnPauseResume = document.getElementById('btn-pause-resume');
   const btnPauseBack   = document.getElementById('btn-pause-back');
 
@@ -95,7 +111,7 @@ function startGame(playerImg, alienImg) {
       if (rec && typeof rec.highScore === 'number') {
         window.highScore = rec.highScore;
       }
-      if (rec && typeof rec.highStreak === 'number') {       // ← NEW
+      if (rec && typeof rec.highStreak === 'number') {
         window.bestStreak = rec.highStreak;
       }
     }
@@ -113,6 +129,33 @@ function startGame(playerImg, alienImg) {
 
   // Middle cell index of each quarter (0..3)
   const groupOffsets = [1, 4, 7, 10];
+
+  // ── Quarter-run limiter: no more than 3 in a row ───────────────────
+  let lastQuarter = null;
+  let quarterRunLength = 0;
+
+  function chooseNextQuarter() {
+    const ALL_Q = [0, 1, 2, 3];
+
+    // If we've already used the same quarter 3 times in a row,
+    // we must choose a different one.
+    let allowed = ALL_Q;
+    if (lastQuarter !== null && quarterRunLength >= 3) {
+      allowed = ALL_Q.filter(q => q !== lastQuarter);
+    }
+
+    const idx = Math.floor(Math.random() * allowed.length);
+    const q = allowed[idx];
+
+    if (q === lastQuarter) {
+      quarterRunLength += 1;
+    } else {
+      lastQuarter = q;
+      quarterRunLength = 1;
+    }
+
+    return q;
+  }
 
   // ── Quarter tone parameters (Gaussian per quarter) ─────────────────
   const quarterToneParams = [
@@ -202,16 +245,35 @@ function startGame(playerImg, alienImg) {
     while(!v) v=Math.random();
     return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
   }
-  function sampleFreqForQuarter(qi) {
-    const { min, max, peak } = quarterToneParams[qi];
-    const sigma = (max - min) / 6;
-    let freq = peak + randn_bm() * sigma;
-    freq = Math.max(min, Math.min(max, freq));
-    const midRange = (min + max) / 2;
-    const shifts = (freq > midRange) ? [-3, -2, -2, 0, 2] : [3, 2, 2, 0, -2];
-    const octaveShift = shifts[Math.floor(Math.random() * shifts.length)];
-    return freq * Math.pow(2, octaveShift);
+function sampleFreqForQuarter(qi) {
+  const { min, max, peak } = quarterToneParams[qi];
+  const sigma = (max - min) / 6;
+
+  // Start from the base (quarter-specific) Gaussian
+  let freq = peak + randn_bm() * sigma;
+  freq = Math.max(min, Math.min(max, freq));
+
+  const midRange = (min + max) / 2;
+  let shifts;
+
+  if (qi === 0) {
+    // QUADRANT 1: strong bias to LOWER octaves (down to -4)
+    // Most picks are -4, -3, or -2; occasional -1 or 0
+    shifts = [-4, -4, -3, -3, -2, -2, -1, 0];
+  } else if (qi === 3) {
+    // QUADRANT 4: strong bias to HIGHER octaves (up to +4)
+    // Most picks are +2, +3, or +4; occasional +1 or 0
+    shifts = [0, 1, 2, 2, 3, 3, 4, 4];
+  } else {
+    // QUADRANTS 2 & 3: keep the existing, more balanced behavior
+    shifts = (freq > midRange)
+      ? [-3, -2, -2, 0,  2]
+      : [ 3,  2,  2, 0, -2];
   }
+
+  const octaveShift = shifts[Math.floor(Math.random() * shifts.length)];
+  return freq * Math.pow(2, octaveShift);
+}
 
   // ── Tone timing controls ───────────────────────────────────────────
   const noteDur = 0.95;
@@ -327,7 +389,7 @@ function startGame(playerImg, alienImg) {
     }
   }
 
-    // ── Score multiplier for enemy kills based on streak ───────────────
+  // ── Score multiplier for enemy kills based on streak ───────────────
   function getKillPointsForStreak(streakValue) {
     const base = 100;
     const s = Math.max(0, streakValue || 0);          // ensure non-negative
@@ -582,6 +644,31 @@ function startGame(playerImg, alienImg) {
       expectedQuarter,withinPhase,phaseShot,streak=0,
       explosions=[],effects=[];
   let bestStreak = window.bestStreak || 0;
+    // Track last chosen quarter and how many times it's been repeated
+  function chooseNextQuarter() {
+    const ALL_Q = [0, 1, 2, 3];
+
+    // If we've already used the same quarter 3 times in a row,
+    // we must choose a different one.
+    let allowed = ALL_Q;
+    if (lastQuarter !== null && quarterRunLength >= 3) {
+      allowed = ALL_Q.filter(q => q !== lastQuarter);
+    }
+
+    const idx = Math.floor(Math.random() * allowed.length);
+    const q = allowed[idx];
+
+    // Update run-length tracking
+    if (q === lastQuarter) {
+      quarterRunLength += 1;
+    } else {
+      lastQuarter = q;
+      quarterRunLength = 1;
+    }
+
+    return q;
+  }
+
 
   const overlay=document.getElementById('overlay'),
         transition=document.getElementById('transition');
@@ -593,28 +680,21 @@ function startGame(playerImg, alienImg) {
     // bestStreak stays as-is across runs until a new user logs in
   }  
 
-  function initState(){
-    ship=new Ship(); bullets=[]; enemy=null; score=0; lvl=0;
-    waiting=false; over=false; inTransition=false; streak=0;
-    explosions=[]; effects=[];
-  }
-
   function initLoop(){
     initState();
     document.addEventListener('keydown', unlock, { once:true });
     requestAnimationFrame(loop);
   }
 
-async function unlock(){
-  try {
-    await audioCtx.resume();   // user gesture
-  } catch {}
-  // Fire-and-forget: start loading samples but DO NOT await readiness
-  loadPianoSamples();
-  // Start the game flow right away
-  scheduleWave();
-}
-
+  async function unlock(){
+    try {
+      await audioCtx.resume();   // user gesture
+    } catch {}
+    // Fire-and-forget: start loading samples but DO NOT await readiness
+    loadPianoSamples();
+    // Start the game flow right away
+    scheduleWave();
+  }
 
   function scheduleWave() {
     if (over || waiting || enemy || inTransition || paused) return;
@@ -628,8 +708,8 @@ async function unlock(){
     withinPhase = false;
     phaseShot = false;
 
-    // Pick a quarter 0..3
-    expectedQuarter = Math.floor(Math.random() * 4);
+    // Pick a quarter 0..3, with safety: no more than 3 in a row
+    expectedQuarter = chooseNextQuarter();
     const spawnCell = groupOffsets[expectedQuarter];
 
     playStatic(2);
@@ -757,7 +837,7 @@ async function unlock(){
 
     bullets = (bullets || []).filter(b=>{
       if(b.off())return false;
-            if (enemy && Math.hypot(enemy.x - b.x, enemy.y - b.y) < enemy.r + b.r) {
+      if (enemy && Math.hypot(enemy.x - b.x, enemy.y - b.y) < enemy.r + b.r) {
         // Score for destroying this enemy scales with current streak:
         // base 100 × 1.25^streak
         const killPoints = getKillPointsForStreak(streak);
@@ -805,35 +885,32 @@ async function unlock(){
     // Restart: if dead, 'r' resets immediately (and resumes audio)
     if (k === 'r' && over) { restartGame(); return; }
 
-    // Move between quarters (1–4). Lane movement is disabled.
     // Move between quarters (no lane movement)
-{
-  const kRaw = e.key || '';
-  const k    = kRaw.toLowerCase();
+    {
+      const kRaw = e.key || '';
+      const kLower = kRaw.toLowerCase();
 
-  // Left-handed keys: 1–4
-  const LEFT_KEYS  = new Map([['1',0], ['2',1], ['3',2], ['4',3]]);
-  // Right-handed keys: P, [, ], \
-  // Note: symbols are case-insensitive in practice, but we check raw and lowercase for safety.
-  const RIGHT_KEYS = new Map([['p',0], ['[',1], [']',2], ['\\',3]]);
+      // Left-handed keys: 1–4
+      const LEFT_KEYS  = new Map([['1',0], ['2',1], ['3',2], ['4',3]]);
+      // Right-handed keys: P, [, ], \
+      const RIGHT_KEYS = new Map([['p',0], ['[',1], [']',2], ['\\',3]]);
 
-  let movementIndex;
-  if (window.isLeftHanded) {
-    movementIndex = LEFT_KEYS.get(kRaw);          // digits come through as raw '1'..'4'
-  } else {
-    movementIndex = RIGHT_KEYS.get(kRaw) ?? RIGHT_KEYS.get(k); // handle 'p' or 'P'
-  }
+      let movementIndex;
+      if (window.isLeftHanded) {
+        movementIndex = LEFT_KEYS.get(kRaw);          // digits come through as raw '1'..'4'
+      } else {
+        movementIndex = RIGHT_KEYS.get(kRaw) ?? RIGHT_KEYS.get(kLower); // handle 'p' or 'P'
+      }
 
-  if (movementIndex !== undefined) {
-    ship.group = movementIndex;
-    ship.blockOffset = 0; // always mid
-    ship.updatePos();
-    return;
-  }
-}
+      if (movementIndex !== undefined) {
+        ship.group = movementIndex;
+        ship.blockOffset = 0; // always mid
+        ship.updatePos();
+        return;
+      }
+    }
 
-
-     if (k === 'c') {
+    if (k === 'c') {
       streak++;
       if (streak > bestStreak) {
         bestStreak = streak;
