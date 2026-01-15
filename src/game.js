@@ -256,20 +256,22 @@ function sampleFreqForQuarter(qi) {
   const midRange = (min + max) / 2;
   let shifts;
 
-  if (qi === 0) {
-    // QUADRANT 1: strong bias to LOWER octaves (down to -4)
-    // Most picks are -4, -3, or -2; occasional -1 or 0
-    shifts = [-4, -4, -3, -3, -2, -2, -1, 0];
-  } else if (qi === 3) {
-    // QUADRANT 4: strong bias to HIGHER octaves (up to +4)
-    // Most picks are +2, +3, or +4; occasional +1 or 0
-    shifts = [0, 1, 2, 2, 3, 3, 4, 4];
-  } else {
-    // QUADRANTS 2 & 3: keep the existing, more balanced behavior
-    shifts = (freq > midRange)
-      ? [-3, -2, -2, 0,  2]
-      : [ 3,  2,  2, 0, -2];
-  }
+if (qi === 0) {
+  // Q1: still biased downward, but slightly more "no shift" (0)
+  // 0 occurs 2/10 = 20%
+  shifts = [-3, -2, -2, -2, -2, -1, -1, -1, 0, 0];
+
+} else if (qi === 3) {
+  // Q4: still biased upward, but slightly more "no shift" (0)
+  // 0 occurs 2/10 = 20%
+  shifts = [0, 1, 1, 1, 2, 2, 2, 2, 3];
+
+} else {
+  // Q2 & Q3: reduce the chance of ±3 slightly (from 1/5=20% to 1/6≈16.7%)
+  shifts = (freq > midRange)
+    ? [-3, -2, -2, -2, 0,  2]   // high half: rare -3
+    : [ 3,  2,  2,  2, 0, -2];  // low half: rare +3
+}
 
   const octaveShift = shifts[Math.floor(Math.random() * shifts.length)];
   return freq * Math.pow(2, octaveShift);
