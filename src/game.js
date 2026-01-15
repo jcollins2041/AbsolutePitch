@@ -269,8 +269,8 @@ if (qi === 0) {
 } else {
   // Q2 & Q3: reduce the chance of ±3 slightly (from 1/5=20% to 1/6≈16.7%)
   shifts = (freq > midRange)
-    ? [-3, -2, -2, -2, 0,  2]   // high half: rare -3
-    : [ 3,  2,  2,  2, 0, -2];  // low half: rare +3
+    ? [-3, -2, -2, -2, -1, -1, 0,  2]   // high half: rare -3
+    : [ 3,  2,  2,  2, 1, 1, 0, -2];  // low half: rare +3
 }
 
   const octaveShift = shifts[Math.floor(Math.random() * shifts.length)];
