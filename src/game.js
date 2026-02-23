@@ -70,6 +70,10 @@ function startGame(playerImg, alienImg) {
   // Make sure the game canvas is visible
   canvas.style.display = 'block';
 
+  // Debug "+Streak" button (exists in index.html)
+  const btnAddStreak = document.getElementById('btnAddStreak');
+  if (btnAddStreak) btnAddStreak.style.display = 'block';
+
   // 🚫 Hide login / intro / leaderboard when the game starts
   const auth        = document.getElementById('auth');
   const intro       = document.getElementById('intro');
@@ -245,54 +249,82 @@ function startGame(playerImg, alienImg) {
     while(!v) v=Math.random();
     return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
   }
-// Extra bias toward quadrant borders (min/max), layered on top of Gaussian
-const EDGE_BIAS = {
-  MIX: 0.55,   // ~55% of the time, replace Gaussian pick with an edge-weighted pick
-  POWER: 2.6   // >1 biases closer to the edge (bigger = more edge-heavy)
-};
-function sampleFreqForQuarter(qi) {
-  const { min, max, peak } = quarterToneParams[qi];
-  const sigma = (max - min) / 6;
 
-  // Start from the base (quarter-specific) Gaussian
-  let freq = peak + randn_bm() * sigma;
-  freq = Math.max(min, Math.min(max, freq));
+  // Extra bias toward quadrant borders (min/max), layered on top of Gaussian
+  const EDGE_BIAS = {
+    MIX: 0.55,   // ~55% of the time, replace Gaussian pick with an edge-weighted pick
+    POWER: 2.6   // >1 biases closer to the edge (bigger = more edge-heavy)
+  };
 
-    // ── Additional edge bias (toward min/max boundaries) ──
-  // With probability EDGE_BIAS.MIX, draw from an edge-heavy distribution instead of the Gaussian.
-  // This increases hits near min/max without changing your octave-shift logic.
-  if (Math.random() < EDGE_BIAS.MIX) {
-    const span = (max - min);
-    const towardMin = (Math.random() < 0.5);
-    const u = Math.random() ** EDGE_BIAS.POWER; // concentrates near 0
-    freq = towardMin
-      ? (min + u * span)          // near min
-      : (max - u * span);         // near max
+  // ── NEW: octave-shift logic coin flip (per tone sequence) ──────────
+  // 1 = Logic 1 (quadrant-specific, allows ±2)
+  // 2 = Logic 2 (only -1/0/+1, equal thirds)
+  let octaveLogicMode = 1;
+
+  function chooseOctaveLogicMode() {
+    octaveLogicMode = (Math.random() < 0.5) ? 1 : 2;
   }
 
-  const midRange = (min + max) / 2;
-  let shifts;
+  function pickOctaveShift(qi) {
+    const r = Math.random();
 
-if (qi === 0) {
-  // Q1: still biased downward, but slightly more "no shift" (0)
-  // 0 occurs 2/10 = 20%
-  shifts = [-3, -2, -2, -2, -2, -1, -1, -1, 0, 0];
+    // Logic 2: no ±2; equal thirds for -1,0,+1 (approx)
+    if (octaveLogicMode === 2) {
+      if (r < (1/3)) return -1;
+      if (r < (2/3)) return 0;
+      return 1;
+    }
 
-} else if (qi === 3) {
-  // Q4: still biased upward, but slightly more "no shift" (0)
-  // 0 occurs 2/10 = 20%
-  shifts = [0, 1, 1, 1, 2, 2, 2, 2, 3];
+    // Logic 1 (as you specified)
+    if (qi === 0) {
+      // Q1: 5% +2, else 23.75% each for +1,0,-1,-2
+      if (r < 0.05) return 2;
+      const t = (r - 0.05) / 0.95; // 0..1
+      if (t < 0.25) return 1;
+      if (t < 0.50) return 0;
+      if (t < 0.75) return -1;
+      return -2;
+    }
 
-} else {
-  // Q2 & Q3: reduce the chance of ±3 slightly (from 1/5=20% to 1/6≈16.7%)
-  shifts = (freq > midRange)
-    ? [-3, -2, -2, -2, -1, -1, 0,  2]   // high half: rare -3
-    : [ 3,  2,  2,  2, 1, 1, 0, -2];  // low half: rare +3
-}
+    if (qi === 3) {
+      // Q4: 5% -2, else 23.75% each for +2,+1,0,-1
+      if (r < 0.05) return -2;
+      const t = (r - 0.05) / 0.95; // 0..1
+      if (t < 0.25) return 2;
+      if (t < 0.50) return 1;
+      if (t < 0.75) return 0;
+      return -1;
+    }
 
-  const octaveShift = shifts[Math.floor(Math.random() * shifts.length)];
-  return freq * Math.pow(2, octaveShift);
-}
+    // Q2 & Q3: 20% each for +2,+1,0,-1,-2
+    if (r < 0.20) return 2;
+    if (r < 0.40) return 1;
+    if (r < 0.60) return 0;
+    if (r < 0.80) return -1;
+    return -2;
+  }
+
+  function sampleFreqForQuarter(qi) {
+    const { min, max, peak } = quarterToneParams[qi];
+    const sigma = (max - min) / 6;
+
+    // Start from the base (quarter-specific) Gaussian
+    let freq = peak + randn_bm() * sigma;
+    freq = Math.max(min, Math.min(max, freq));
+
+    // ── Additional edge bias (toward min/max boundaries) ──
+    if (Math.random() < EDGE_BIAS.MIX) {
+      const span = (max - min);
+      const towardMin = (Math.random() < 0.5);
+      const u = Math.random() ** EDGE_BIAS.POWER; // concentrates near 0
+      freq = towardMin
+        ? (min + u * span)          // near min
+        : (max - u * span);         // near max
+    }
+
+    const octaveShift = pickOctaveShift(qi);
+    return freq * Math.pow(2, octaveShift);
+  }
 
   // ── Tone timing controls ───────────────────────────────────────────
   const noteDur = 0.95;
@@ -419,9 +451,9 @@ if (qi === 0) {
   // ── NOTE SCHEDULER ─────────────────────────────────────────────────
   let toneLoopTimer = null;
   let lastToneHz = null;
-  let fixedToneHz = null; // for Level 6+ "single tone" mode
 
   function centsBetween(a, b) { return Math.abs(1200 * Math.log2(a / b)); }
+
   function pickNonRepeatingFreqForQuarter(qi) {
     let tries = 0;
     while (tries < 8) {
@@ -438,6 +470,10 @@ if (qi === 0) {
   function startToneSequence(qi) {
     stopToneSequence();
     if (!piano.ready) { console.warn('[piano] tried to start before ready'); return; }
+
+    // NEW: coin flip decides which octave logic to use for this sequence
+    chooseOctaveLogicMode();
+
     const IOI = Math.max(0.03, noteDur - NEXT_NOTE_LEAD);
     const scheduleNext = (startTime) => {
       const f = pickNonRepeatingFreqForQuarter(qi);
@@ -450,31 +486,9 @@ if (qi === 0) {
     scheduleNext(firstStart);
   }
 
-function startFixedTone(qi) {
-  stopToneSequence();
-  if (!piano.ready) { console.warn('[piano] tried to start before ready'); return; }
-
-  // Pick ONE tone using the same quarter sampling rules (now including edge-bias + octave shifts)
-  fixedToneHz = sampleFreqForQuarter(qi);
-
-  const IOI = Math.max(0.03, noteDur - NEXT_NOTE_LEAD);
-
-  const scheduleNext = (startTime) => {
-    // Always replay the SAME tone
-    playPianoTone(fixedToneHz, noteDur, startTime);
-
-    const nextStart = startTime + IOI;
-    const delayMs   = Math.max(0, (nextStart - audioCtx.currentTime - 0.01) * 1000);
-    toneLoopTimer = setTimeout(() => scheduleNext(nextStart), delayMs);
-  };
-
-  scheduleNext(audioCtx.currentTime + 0.02);
-}
-
   function stopToneSequence() {
     if (toneLoopTimer) { clearTimeout(toneLoopTimer); toneLoopTimer = null; }
     lastToneHz = null;
-    fixedToneHz = null;
   }
 
   // ── Timers to fully stop activity on pause/death/restart ───────────
@@ -549,6 +563,7 @@ function startFixedTone(qi) {
       if (pausedSnapshot.withinPhase && !enemy) {
         withinPhase = true;
         waiting = true;
+
         startToneSequence(pausedSnapshot.quarter);
 
         if (spawnTimer) { clearTimeout(spawnTimer); }
@@ -593,6 +608,9 @@ function startFixedTone(qi) {
     if (pauseMenu) pauseMenu.style.display = 'none';
     const overlay = document.getElementById('overlay');
     if (overlay) overlay.style.display = 'none';
+
+    // Hide debug streak button on exit
+    if (btnAddStreak) btnAddStreak.style.display = 'none';
 
     // Remove key handler to avoid Esc affecting login screen
     if (window._rtKeyHandlerRef) {
@@ -640,10 +658,10 @@ function startFixedTone(qi) {
   }
 
   class Bullet {
-    constructor(x,y) { 
-      this.x = x; 
-      this.y = y; 
-      this.r = 4; 
+    constructor(x,y) {
+      this.x = x;
+      this.y = y;
+      this.r = 4;
       this.vy = SPEED.BULLET_VY; // faster bullets
     }
     update() { this.y += this.vy; }
@@ -686,31 +704,6 @@ function startFixedTone(qi) {
       expectedQuarter,withinPhase,phaseShot,streak=0,
       explosions=[],effects=[];
   let bestStreak = window.bestStreak || 0;
-    // Track last chosen quarter and how many times it's been repeated
-  function chooseNextQuarter() {
-    const ALL_Q = [0, 1, 2, 3];
-
-    // If we've already used the same quarter 3 times in a row,
-    // we must choose a different one.
-    let allowed = ALL_Q;
-    if (lastQuarter !== null && quarterRunLength >= 3) {
-      allowed = ALL_Q.filter(q => q !== lastQuarter);
-    }
-
-    const idx = Math.floor(Math.random() * allowed.length);
-    const q = allowed[idx];
-
-    // Update run-length tracking
-    if (q === lastQuarter) {
-      quarterRunLength += 1;
-    } else {
-      lastQuarter = q;
-      quarterRunLength = 1;
-    }
-
-    return q;
-  }
-
 
   const overlay=document.getElementById('overlay'),
         transition=document.getElementById('transition');
@@ -720,7 +713,7 @@ function startFixedTone(qi) {
     waiting=false; over=false; inTransition=false; streak=0;
     explosions=[]; effects=[];
     // bestStreak stays as-is across runs until a new user logs in
-  }  
+  }
 
   function initLoop(){
     initState();
@@ -760,13 +753,7 @@ function startFixedTone(qi) {
       await waitForPianoReady();
       withinPhase = true;
 
-      // After Level 5 (i.e., Level 6+), use fixed-tone mode.
-      // lvl is 0-indexed: lvl=4 is Level 5, so "after Level 5" => lvl >= 5.
-      if (lvl >= 5) {
-        startFixedTone(expectedQuarter);
-      } else {
-        startToneSequence(expectedQuarter);
-      }
+      startToneSequence(expectedQuarter);
 
       // Spawn alien after prefire window
       spawnTimer=setTimeout(()=>{
@@ -802,6 +789,9 @@ function startFixedTone(qi) {
     if (pauseMenu) pauseMenu.style.display = 'none';
 
     initState();
+
+    // show debug streak button when playing
+    if (btnAddStreak) btnAddStreak.style.display = 'block';
 
     // resume audio immediately (R key is a user gesture)
     audioCtx.resume().catch(()=>{});
@@ -877,6 +867,9 @@ function startFixedTone(qi) {
         stopToneSequence();
         audioCtx.suspend().catch(()=>{});
 
+        // hide debug streak button on game over
+        if (btnAddStreak) btnAddStreak.style.display = 'none';
+
         overlay.style.display='block';
         return;
       }
@@ -918,6 +911,24 @@ function startFixedTone(qi) {
   // Movement & shooting parameters (dedup across restarts)
   if (window._rtKeyHandlerRef) {
     document.removeEventListener('keydown', window._rtKeyHandlerRef);
+  }
+
+  // Debug streak button: same as pressing 'c'
+  if (btnAddStreak) {
+    if (btnAddStreak._rtBound) {
+      btnAddStreak.removeEventListener('click', btnAddStreak._rtBound);
+      btnAddStreak._rtBound = null;
+    }
+    const onAddStreak = () => {
+      if (paused || over) return;
+      streak++;
+      if (streak > bestStreak) {
+        bestStreak = streak;
+        window.bestStreak = bestStreak;
+      }
+    };
+    btnAddStreak.addEventListener('click', onAddStreak);
+    btnAddStreak._rtBound = onAddStreak;
   }
 
   const keyHandler = (e) => {
