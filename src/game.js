@@ -245,6 +245,11 @@ function startGame(playerImg, alienImg) {
     while(!v) v=Math.random();
     return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
   }
+// Extra bias toward quadrant borders (min/max), layered on top of Gaussian
+const EDGE_BIAS = {
+  MIX: 0.55,   // ~55% of the time, replace Gaussian pick with an edge-weighted pick
+  POWER: 2.6   // >1 biases closer to the edge (bigger = more edge-heavy)
+};
 function sampleFreqForQuarter(qi) {
   const { min, max, peak } = quarterToneParams[qi];
   const sigma = (max - min) / 6;
@@ -252,6 +257,18 @@ function sampleFreqForQuarter(qi) {
   // Start from the base (quarter-specific) Gaussian
   let freq = peak + randn_bm() * sigma;
   freq = Math.max(min, Math.min(max, freq));
+
+    // ── Additional edge bias (toward min/max boundaries) ──
+  // With probability EDGE_BIAS.MIX, draw from an edge-heavy distribution instead of the Gaussian.
+  // This increases hits near min/max without changing your octave-shift logic.
+  if (Math.random() < EDGE_BIAS.MIX) {
+    const span = (max - min);
+    const towardMin = (Math.random() < 0.5);
+    const u = Math.random() ** EDGE_BIAS.POWER; // concentrates near 0
+    freq = towardMin
+      ? (min + u * span)          // near min
+      : (max - u * span);         // near max
+  }
 
   const midRange = (min + max) / 2;
   let shifts;
@@ -402,6 +419,7 @@ if (qi === 0) {
   // ── NOTE SCHEDULER ─────────────────────────────────────────────────
   let toneLoopTimer = null;
   let lastToneHz = null;
+  let fixedToneHz = null; // for Level 6+ "single tone" mode
 
   function centsBetween(a, b) { return Math.abs(1200 * Math.log2(a / b)); }
   function pickNonRepeatingFreqForQuarter(qi) {
@@ -432,9 +450,31 @@ if (qi === 0) {
     scheduleNext(firstStart);
   }
 
+function startFixedTone(qi) {
+  stopToneSequence();
+  if (!piano.ready) { console.warn('[piano] tried to start before ready'); return; }
+
+  // Pick ONE tone using the same quarter sampling rules (now including edge-bias + octave shifts)
+  fixedToneHz = sampleFreqForQuarter(qi);
+
+  const IOI = Math.max(0.03, noteDur - NEXT_NOTE_LEAD);
+
+  const scheduleNext = (startTime) => {
+    // Always replay the SAME tone
+    playPianoTone(fixedToneHz, noteDur, startTime);
+
+    const nextStart = startTime + IOI;
+    const delayMs   = Math.max(0, (nextStart - audioCtx.currentTime - 0.01) * 1000);
+    toneLoopTimer = setTimeout(() => scheduleNext(nextStart), delayMs);
+  };
+
+  scheduleNext(audioCtx.currentTime + 0.02);
+}
+
   function stopToneSequence() {
     if (toneLoopTimer) { clearTimeout(toneLoopTimer); toneLoopTimer = null; }
     lastToneHz = null;
+    fixedToneHz = null;
   }
 
   // ── Timers to fully stop activity on pause/death/restart ───────────
@@ -720,8 +760,13 @@ if (qi === 0) {
       await waitForPianoReady();
       withinPhase = true;
 
-      // Start the continuous sequence for THIS quarter
-      startToneSequence(expectedQuarter);
+      // After Level 5 (i.e., Level 6+), use fixed-tone mode.
+      // lvl is 0-indexed: lvl=4 is Level 5, so "after Level 5" => lvl >= 5.
+      if (lvl >= 5) {
+        startFixedTone(expectedQuarter);
+      } else {
+        startToneSequence(expectedQuarter);
+      }
 
       // Spawn alien after prefire window
       spawnTimer=setTimeout(()=>{
