@@ -250,58 +250,12 @@ function startGame(playerImg, alienImg) {
     return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
   }
 
-  // Extra bias toward quadrant borders (min/max), layered on top of Gaussian
-  const EDGE_BIAS = {
-    MIX: 0.55,   // ~55% of the time, replace Gaussian pick with an edge-weighted pick
-    POWER: 2.6   // >1 biases closer to the edge (bigger = more edge-heavy)
-  };
-
-  // ── NEW: octave-shift logic coin flip (per tone sequence) ──────────
-  // 1 = Logic 1 (quadrant-specific, allows ±2)
-  // 2 = Logic 2 (only -1/0/+1, equal thirds)
-  let octaveLogicMode = 1;
-
-  function chooseOctaveLogicMode() {
-    octaveLogicMode = (Math.random() < 0.5) ? 1 : 2;
-  }
-
-  function pickOctaveShift(qi) {
-    const r = Math.random();
-
-    // Logic 2: no ±2; equal thirds for -1,0,+1 (approx)
-    if (octaveLogicMode === 2) {
-      if (r < (1/3)) return -1;
-      if (r < (2/3)) return 0;
-      return 1;
-    }
-
-    // Logic 1 (as you specified)
-    if (qi === 0) {
-      // Q1: 5% +2, else 23.75% each for +1,0,-1,-2
-      if (r < 0.05) return 2;
-      const t = (r - 0.05) / 0.95; // 0..1
-      if (t < 0.25) return 1;
-      if (t < 0.50) return 0;
-      if (t < 0.75) return -1;
-      return -2;
-    }
-
-    if (qi === 3) {
-      // Q4: 5% -2, else 23.75% each for +2,+1,0,-1
-      if (r < 0.05) return -2;
-      const t = (r - 0.05) / 0.95; // 0..1
-      if (t < 0.25) return 2;
-      if (t < 0.50) return 1;
-      if (t < 0.75) return 0;
-      return -1;
-    }
-
-    // Q2 & Q3: 20% each for +2,+1,0,-1,-2
-    if (r < 0.20) return 2;
-    if (r < 0.40) return 1;
-    if (r < 0.60) return 0;
-    if (r < 0.80) return -1;
-    return -2;
+  // ── NEW: fixed octave shift per tone sequence (per trial) ──────────
+  // Choose one of: -2, -1, 0, +1, +2 (uniform) BEFORE the sequence starts.
+  let sequenceOctaveShift = 0;
+  function chooseSequenceOctaveShift() {
+    const choices = [-2, -1, 0, 1, 2];
+    sequenceOctaveShift = choices[Math.floor(Math.random() * choices.length)];
   }
 
   function sampleFreqForQuarter(qi) {
@@ -312,19 +266,9 @@ function startGame(playerImg, alienImg) {
     let freq = peak + randn_bm() * sigma;
     freq = Math.max(min, Math.min(max, freq));
 
-    // ── Additional edge bias (toward min/max boundaries) ──
-    if (Math.random() < EDGE_BIAS.MIX) {
-      const span = (max - min);
-      const towardMin = (Math.random() < 0.5);
-      const u = Math.random() ** EDGE_BIAS.POWER; // concentrates near 0
-      freq = towardMin
-        ? (min + u * span)          // near min
-        : (max - u * span);         // near max
-    }
-
-    const octaveShift = pickOctaveShift(qi);
-    return freq * Math.pow(2, octaveShift);
-  }
+    // Apply the fixed octave shift for THIS tone sequence
+    return freq * Math.pow(2, sequenceOctaveShift);
+   }
 
   // ── Tone timing controls ───────────────────────────────────────────
   const noteDur = 0.95;
@@ -471,8 +415,8 @@ function startGame(playerImg, alienImg) {
     stopToneSequence();
     if (!piano.ready) { console.warn('[piano] tried to start before ready'); return; }
 
-    // NEW: coin flip decides which octave logic to use for this sequence
-    chooseOctaveLogicMode();
+    // NEW: pick ONE octave shift for the entire sequence (trial)
+    chooseSequenceOctaveShift();
 
     const IOI = Math.max(0.03, noteDur - NEXT_NOTE_LEAD);
     const scheduleNext = (startTime) => {
@@ -564,7 +508,20 @@ function startGame(playerImg, alienImg) {
         withinPhase = true;
         waiting = true;
 
-        startToneSequence(pausedSnapshot.quarter);
+        // IMPORTANT: resume the sequence WITHOUT re-rolling the octave shift
+        // (startToneSequence() re-rolls sequenceOctaveShift, so we inline-start here)
+        stopToneSequence();
+        if (!piano.ready) { console.warn('[piano] tried to start before ready'); return; }
+        const qi = pausedSnapshot.quarter;
+        const IOI = Math.max(0.03, noteDur - NEXT_NOTE_LEAD);
+        const scheduleNext = (startTime) => {
+          const f = pickNonRepeatingFreqForQuarter(qi);
+          playPianoTone(f, noteDur, startTime);
+          const nextStart = startTime + IOI;
+          const delayMs   = Math.max(0, (nextStart - audioCtx.currentTime - 0.01) * 1000);
+          toneLoopTimer = setTimeout(() => scheduleNext(nextStart), delayMs);
+        };
+        scheduleNext(audioCtx.currentTime + 0.02);
 
         if (spawnTimer) { clearTimeout(spawnTimer); }
         spawnTimer = setTimeout(()=>{
